@@ -1,0 +1,217 @@
+<style>
+  body,
+  table,
+  td,
+  th,
+  p {
+    font-family: Calibri, Verdana, Helvetica, sans serif;
+    font-size: 12px;
+    color: black;
+  }
+
+  .console {
+    font-family: Courier New;
+  }
+
+  .filesChanged {
+    width: 10%;
+    padding-left: 10px;
+  }
+
+  .section {
+    width: 100%;
+    border: thin black dotted;
+  }
+
+  .td-title-main {
+    color: white;
+    font-size: 200%;
+    padding-left: 5px;
+    font-weight: bold;
+  }
+
+  .td-title {
+    color: white;
+    font-size: 120%;
+    font-weight: bold;
+    padding-left: 5px;
+    text-transform: uppercase;
+  }
+
+  .td-title-tests {
+    font-weight: bold;
+    font-size: 120%;
+  }
+
+  .td-header-maven-module {
+    font-weight: bold;
+    font-size: 120%;
+  }
+
+  .td-maven-artifact {
+    padding-left: 5px;
+  }
+
+  .build-success .tr-title {
+    background-color: #27AE60;
+  }
+
+  .build-failure .tr-title {
+    background-color: #E74C3C;
+  }
+
+  .build-unstable .tr-title {
+    background-color: #F4E242;
+  }
+
+  .test {
+    padding-left: 20px;
+  }
+
+  .test-fixed {
+    color: #27AE60;
+  }
+
+  .test-failed {
+    color: #E74C3C;
+  }
+</style>
+
+<body class="build-${build.result.toLowerCase()}">
+  <!-- BUILD RESULT -->
+  <table class="section">
+    <tr class="tr-title">
+      <td class="td-title-main" colspan=2>
+        BUILD ${build.result}
+      </td>
+    </tr>
+    <tr>
+      <td>URL:</td>
+      <td>
+        <A href="${build.url}">${build.url}</A>
+      </td>
+    </tr>
+    <tr>
+      <td>Project:</td>
+      <td>${project.name}</td>
+    </tr>
+    <tr>
+      <td>Date:</td>
+      <td>${build.timestamp}</td>
+    </tr>
+    <tr>
+      <td>Duration:</td>
+      <td>${build.duration}</td>
+    </tr>
+    <tr>
+      <td>Cause:</td>
+      <td>
+        <% build.causes.each() { cause -> %>
+          ${cause.shortDescription}
+          <%  } %>
+      </td>
+    </tr>
+  </table>
+  <br/>
+
+  <!-- CHANGE SET -->
+  <table class="section">
+    <tr class="tr-title">
+      <td class="td-title" colspan="2">CHANGES</td>
+    </tr>
+    <% if ( build.changeSets.size() == 0 ) { %>
+      <tr>
+        <td colspan="2">No Changes</td>
+      </tr>
+      <% } else {
+        build.changeSets.each() { changeSet -> %>
+        <tr>
+          <td>
+            Revision
+            <%= changeSet.revision %>
+              by
+              <b>
+                <%= changeSet.author %>
+              </b>
+          </td>
+          <td>${changeSet.msgAnnotated}</td>
+        </tr>
+        <% changeSet.affectedFiles.each() { file -> %>
+          <tr>
+            <td class="filesChanged">${file.editType}</td>
+            <td>${file.path}</td>
+          </tr>
+          <% }
+    }
+  } %>
+  </table>
+
+  <!-- ARTIFACTS -->
+  <table class="section">
+    <tr class="tr-title">
+      <td class="td-title" colspan="2">BUILD ARTIFACTS</td>
+    </tr>
+    <% if ( build.artifacts.size() == 0 ) { %>
+      <tr>
+        <td colspan="2">No Artifacts</td>
+      </tr>
+      <% } else {
+          build.artifacts.each() { artifact -> %>
+        <tr>
+          <td>
+            <a href="${build.url}artifact/${artifact}">${artifact}</a>
+          </td>
+        </tr>
+        <% } 
+      } %>
+  </table>
+
+  <!-- TEST RESULTS -->
+  <table class="section">
+    <tr class="tr-title">
+      <td class="td-title" colspan="2">TEST RESULTS</td>
+    </tr>
+    <% if ( build.testResults.size() == 0 ) { %>
+      <tr>
+        <td colspan="2">No Test Results</td>
+      </tr>
+      <% } else { %>
+        <tr class="tr-title">
+          <td class="td-title" colspan="5">${build.testResults.first().displayName}</td>
+        </tr>
+        <tr>
+          <td class="td-title-tests">Name</td>
+          <td class="td-title-tests">Failed</td>
+          <td class="td-title-tests">Passed</td>
+          <td class="td-title-tests">Skipped</td>
+          <td class="td-title-tests">Total</td>
+        </tr>
+
+        <% build.testResults.each { testCaseResult -> %>
+          <tr>
+            <td>${testCaseResult.name}</td>
+            <td>${testCaseResult.failCount}</td>
+            <td>${testCaseResult.passCount}</td>
+            <td>${testCaseResult.skipCount}</td>
+            <td>${testCaseResult.passCount + testCaseResult.failCount + testCaseResult.skipCount}</td>
+          </tr>
+
+          <% testCaseResult.passedTests.findAll({it.status == "FIXED";}).each{ test -> %>
+            <tr>
+              <td class="test test-fixed" colspan="5">
+                ${test.fullName} ${test.status}
+              </td>
+            </tr>
+            <% } %>
+              <% testCaseResult.failedTests.sort({a,b -> a.age <=> b.age}).each{ failedTest -> %>
+                <tr>
+                  <td class="test test-failed" colspan="5">
+                    ${failedTest.fullName} (Age: ${failedTest.age})
+                  </td>
+                </tr>
+                <% }
+        }
+      } %>
+  </table>
+
+</body>
